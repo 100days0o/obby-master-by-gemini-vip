@@ -406,8 +406,10 @@ task.spawn(function()
                                         tool:Activate()
                                         local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("BasePart")
                                         if handle then
-                                            firetouchinterest(enemyHrp, handle, 0)
-                                            firetouchinterest(enemyHrp, handle, 1)
+                                            pcall(function()
+                                                firetouchinterest(enemyHrp, handle, 0)
+                                                firetouchinterest(enemyHrp, handle, 1)
+                                            end)
                                         end
                                     end
                                 end
@@ -507,7 +509,3 @@ _G.VIPSpeedCoil = false
 _G.VIPGravityCoil = false
 
 TabMisc:CreateButton({
-    Name = GetText("TPTool"),
-    Callback = function()
-        local tool = Instance.new("Tool")
-        tool.Name =
