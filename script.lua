@@ -1,7 +1,15 @@
--- Hệ thống chống AFK (VIP Premium)
+-- Hệ thống chống AFK (VIP Premium) - Tối ưu hóa bộ nhớ
+local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
 pcall(function()
-    game:GetService("Players").LocalPlayer.Idled:Connect(function()
+    LocalPlayer.Idled:Connect(function()
         VirtualUser:CaptureController()
         VirtualUser:ClickButton2(Vector2.new(0,0))
     end)
@@ -60,7 +68,7 @@ local function GetText(key)
     return Localization[key] and Localization[key][CurrentLang] or key
 end
 
--- Khởi tạo Rayfield GUI
+-- Khởi tạo Rayfield GUI (Tải nhanh từ CDN ưu tiên)
 local Rayfield = nil
 pcall(function() Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))() end)
 if not Rayfield then
@@ -84,9 +92,7 @@ local TabMisc = Window:CreateTab(GetText("TabMisc"), "star")
 local TabLanguage = Window:CreateTab(GetText("TabLang"), "globe")
 
 local function GetCharacterElements()
-    local player = game.Players.LocalPlayer
-    if not player then return nil, nil, nil end
-    local char = player.Character
+    local char = LocalPlayer.Character
     if not char then return nil, nil, nil end
     return char, char:FindFirstChildOfClass("Humanoid"), char:FindFirstChild("HumanoidRootPart")
 end
@@ -118,7 +124,26 @@ TabMovement:CreateToggle({
     Callback = function(v) _G.InfJump = v end,
 })
 
--- HỆ THỐNG BAY MOBILE ĐỘC QUYỀN (Tự tạo Nút ảo Lên/Xuống)
+-- Xử lý vòng lặp thuộc tính nhân vật (Gộp chung để chạy siêu tốc)
+task.spawn(function()
+    RunService.Heartbeat:Connect(function()
+        local _, hum, hrp = GetCharacterElements()
+        if hum then
+            if _G.CustomSpeed then hum.WalkSpeed = _G.CustomSpeed end
+            if _G.CustomJump then hum.JumpPower = _G.CustomJump end
+        end
+    end)
+end)
+
+-- Nhảy vô hạn tối ưu phản hồi nhanh
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if _G.InfJump then
+        local _, hum, _ = GetCharacterElements()
+        if hum then hum:ChangeState("Jumping") end
+    end
+end)
+
+-- HỆ THỐNG BAY MOBILE ĐỘC QUYỀN
 local Flying = false
 local FlySpeed = 50
 local FlyUp = false
@@ -131,9 +156,8 @@ local function CreateMobileFlyButtons()
     ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MobileFlyGui"
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.Parent = game.CoreInterface or game:GetService("CoreGui") or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.Parent = game:GetService("CoreGui") or PlayerGui
     
-    -- Nút Bay Lên (Up)
     local UpBtn = Instance.new("TextButton")
     UpBtn.Name = "FlyUpButton"
     UpBtn.Size = UDim2.new(0, 65, 0, 65)
@@ -144,12 +168,9 @@ local function CreateMobileFlyButtons()
     UpBtn.TextSize = 30
     UpBtn.Font = Enum.Font.SourceSansBold
     UpBtn.BackgroundTransparency = 0.3
-    
-    local corner1 = Instance.new("UICorner", UpBtn)
-    corner1.CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", UpBtn).CornerRadius = UDim.new(0, 12)
     UpBtn.Parent = ScreenGui
     
-    -- Nút Bay Xuống (Down)
     local DownBtn = Instance.new("TextButton")
     DownBtn.Name = "FlyDownButton"
     DownBtn.Size = UDim2.new(0, 65, 0, 65)
@@ -160,25 +181,13 @@ local function CreateMobileFlyButtons()
     DownBtn.TextSize = 30
     DownBtn.Font = Enum.Font.SourceSansBold
     DownBtn.BackgroundTransparency = 0.3
-    
-    local corner2 = Instance.new("UICorner", DownBtn)
-    corner2.CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", DownBtn).CornerRadius = UDim.new(0, 12)
     DownBtn.Parent = ScreenGui
     
-    -- Xử lý giữ nút Mobile
-    UpBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyUp = true end
-    end)
-    UpBtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyUp = false end
-    end)
-    
-    DownBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyDown = true end
-    end)
-    DownBtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyDown = false end
-    end)
+    UpBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyUp = true end end)
+    UpBtn.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyUp = false end end)
+    DownBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyDown = true end end)
+    DownBtn.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyDown = false end end)
 end
 
 TabMovement:CreateToggle({
@@ -191,7 +200,6 @@ TabMovement:CreateToggle({
         
         if Flying then
             CreateMobileFlyButtons()
-            
             if hrp:FindFirstChild("VIPFly") then hrp.VIPFly:Destroy() end
             if hrp:FindFirstChild("VIPGyro") then hrp.VIPGyro:Destroy() end
             
@@ -213,13 +221,11 @@ TabMovement:CreateToggle({
                     local moveDirection = hum and hum.MoveDirection or Vector3.new(0,0,0)
                     local velocityVector = moveDirection * FlySpeed
                     
-                    -- Tính toán nâng hạ độ cao từ nút bấm Mobile
                     local verticalSpeed = 0
                     if FlyUp then verticalSpeed = FlySpeed end
                     if FlyDown then verticalSpeed = -FlySpeed end
                     
                     cHrp.VIPFly.velocity = Vector3.new(velocityVector.X, verticalSpeed == 0 and velocityVector.Y or verticalSpeed, velocityVector.Z)
-                    
                     if moveDirection.Magnitude == 0 and verticalSpeed == 0 then
                         cHrp.VIPFly.velocity = Vector3.new(0, 0, 0)
                     end
@@ -237,13 +243,19 @@ TabMovement:CreateToggle({
 })
 
 ---------------------------------------------------------
--- TAB 2: BÁ CHỦ OBBY
+-- TAB 2: BÁ CHỦ OBBY (TỐI ƯU HÓA TÌM KIẾM NHANH)
 ---------------------------------------------------------
 TabObbyEscape:CreateButton({
     Name = GetText("AutoWin"),
     Callback = function()
         local _, _, hrp = GetCharacterElements()
         if hrp then
+            for _, v in pairs(workspace:GetChildren()) do
+                if v:IsA("BasePart") and (string.find(v.Name, "Win") or string.find(v.Name, "End") or string.find(v.Name, "Finish")) then
+                    hrp.CFrame = v.CFrame
+                    return
+                end
+            end
             for _, v in pairs(workspace:GetDescendants()) do
                 if v:IsA("BasePart") and (string.find(v.Name, "Win") or string.find(v.Name, "End") or string.find(v.Name, "Finish")) then
                     hrp.CFrame = v.CFrame
@@ -259,16 +271,15 @@ TabObbyEscape:CreateButton({
     Callback = function()
         local _, _, hrp = GetCharacterElements()
         if not hrp then return end
-        local TweenService = game:GetService("TweenService")
         
         task.spawn(function()
+            local allParts = workspace:GetDescendants()
             for i = 1, 500 do
-                for _, v in pairs(workspace:GetDescendants()) do
+                for _, v in pairs(allParts) do
                     if v:IsA("BasePart") and (v.Name == tostring(i) or v.Name == "Checkpoint " .. tostring(i)) then
-                        local tween = TweenService:Create(hrp, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {CFrame = v.CFrame + Vector3.new(0,3,0)})
+                        local tween = TweenService:Create(hrp, TweenInfo.new(0.08, Enum.EasingStyle.Linear), {CFrame = v.CFrame + Vector3.new(0,3,0)})
                         tween:Play()
                         tween.Completed:Wait()
-                        task.wait(0.1)
                         break
                     end
                 end
@@ -282,22 +293,24 @@ TabObbyEscape:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.AutoFarm = Value
+        if not Value then return end
         task.spawn(function()
+            local allParts = workspace:GetDescendants()
             while _G.AutoFarm do
                 local _, _, hrp = GetCharacterElements()
                 if hrp then
                     for i = 1, 500 do
                         if not _G.AutoFarm then break end
-                        for _, v in pairs(workspace:GetDescendants()) do
+                        for _, v in pairs(allParts) do
                             if v:IsA("BasePart") and (v.Name == tostring(i) or v.Name == "Checkpoint " .. tostring(i)) then
                                 hrp.CFrame = v.CFrame + Vector3.new(0, 3, 0)
-                                task.wait(0.4)
+                                task.wait(0.15)
                                 break
                             end
                         end
                     end
                 end
-                task.wait(1)
+                task.wait(0.5)
             end
         end)
     end,
@@ -307,10 +320,13 @@ TabObbyEscape:CreateButton({
     Name = GetText("ClearTraps"),
     Callback = function()
         for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("BasePart") and (string.find(string.lower(v.Name), "kill") or string.find(string.lower(v.Name), "lava") or string.find(string.lower(v.Name), "dead")) then
-                v.CanTouch = false
-                v.Transparency = 0.6
-                v.Color = Color3.fromRGB(170, 0, 255)
+            if v:IsA("BasePart") then
+                local lowerName = string.lower(v.Name)
+                if string.find(lowerName, "kill") or string.find(lowerName, "lava") or string.find(lowerName, "dead") then
+                    v.CanTouch = false
+                    v.Transparency = 0.6
+                    v.Color = Color3.fromRGB(170, 0, 255)
+                end
             end
         end
     end,
@@ -321,6 +337,16 @@ TabObbyEscape:CreateToggle({
     CurrentValue = false,
     Callback = function(v) _G.Instant = v end,
 })
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.Instant then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then v.HoldDuration = 0 end
+            end
+        end
+    end
+end)
 
 ---------------------------------------------------------
 -- TAB 3: PHÒNG THỦ TỐI THƯỢNG
@@ -365,17 +391,18 @@ TabCombatVisual:CreateToggle({
 TabCombatVisual:CreateToggle({
     Name = GetText("KillAura"),
     CurrentValue = false,
-    Callback = function(Value) _G.KillAura = Value end,
+    Callback = function(Value) _G.KillAura = Value end
 })
 
--- Xử lý định vị và tự động chém quái
 task.spawn(function()
-    while task.wait(0.3) do
+    while task.wait(0.1) do
         pcall(function()
             local char, _, hrp = GetCharacterElements()
-            if _G.ESPMonster and char then
-                for _, model in pairs(workspace:GetDescendants()) do
-                    if model:IsA("Model") and model ~= char and not game.Players:GetPlayerFromCharacter(model) then
+            if not char or not hrp then return end
+
+            if _G.ESPMonster then
+                for _, model in pairs(workspace:GetChildren()) do
+                    if model:IsA("Model") and model ~= char and not Players:GetPlayerFromCharacter(model) then
                         local lowerName = string.lower(model.Name)
                         if string.find(lowerName, "monster") or string.find(lowerName, "zombie") or string.find(lowerName, "bot") or model:FindFirstChild("Zombie") or model:FindFirstChild("Monster") then
                             if not model:FindFirstChild("MonsterESP") then
@@ -391,18 +418,17 @@ task.spawn(function()
                 end
             end
 
-            if _G.KillAura and char and hrp then
+            if _G.KillAura then
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
                     local lowerTool = string.lower(tool.Name)
                     if string.find(lowerTool, "sword") or string.find(lowerTool, "kiếm") or string.find(lowerTool, "weapon") or tool:FindFirstChildOfClass("TouchTransmitter") then
-                        for _, enemy in pairs(workspace:GetDescendants()) do
-                            if enemy:IsA("Model") and enemy ~= char and not game.Players:GetPlayerFromCharacter(enemy) then
+                        for _, enemy in pairs(workspace:GetChildren()) do
+                            if enemy:IsA("Model") and enemy ~= char and not Players:GetPlayerFromCharacter(enemy) then
                                 local enemyHrp = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
                                 local enemyHum = enemy:FindFirstChildOfClass("Humanoid")
                                 if enemyHrp and enemyHum and enemyHum.Health > 0 then
-                                    local distance = (hrp.Position - enemyHrp.Position).Magnitude
-                                    if distance <= 18 then
+                                    if (hrp.Position - enemyHrp.Position).Magnitude <= 18 then
                                         tool:Activate()
                                         local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("BasePart")
                                         if handle then
@@ -445,8 +471,8 @@ TabVisuals:CreateToggle({
     CurrentValue = false,
     Callback = function(Value)
         _G.ESP = Value
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= game.Players.LocalPlayer and p.Character then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
                 local h = p.Character:FindFirstChildOfClass("Highlight")
                 if Value then 
                     if not h then Instance.new("Highlight", p.Character) end 
@@ -458,56 +484,17 @@ TabVisuals:CreateToggle({
     end,
 })
 
+-- SỬA LẠI NOCLIP: Chạy mượt tuyệt đối qua Stepped ngăn kẹt tường/văng game
 TabVisuals:CreateToggle({
     Name = GetText("Noclip"),
     CurrentValue = false,
     Callback = function(v) _G.Noclip = v end
 })
 
-TabVisuals:CreateToggle({
-    Name = GetText("Fullbright"),
-    CurrentValue = false,
-    Callback = function(v)
-        _G.Fullbright = v
-        local lighting = game:GetService("Lighting")
-        if v then
-            lighting.Ambient = Color3.fromRGB(255, 255, 255)
-            lighting.Brightness = 2
-            lighting.GlobalShadows = false
-        else
-            lighting.Ambient = Color3.fromRGB(128, 128, 128)
-            lighting.Brightness = 1
-            lighting.GlobalShadows = true
-        end
-    end,
-})
-
-TabVisuals:CreateToggle({
-    Name = GetText("NoFog"),
-    CurrentValue = false,
-    Callback = function(v)
-        _G.NoFog = v
-        if v then game:GetService("Lighting").FogEnd = 9e9 else game:GetService("Lighting").FogEnd = 1000 end
-    end,
-})
-
----------------------------------------------------------
--- TAB 5: TIỆN ÍCH TỐI CAO
----------------------------------------------------------
-TabMisc:CreateButton({
-    Name = GetText("BTools"),
-    Callback = function()
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiy/FireEVO/main/BTools.lua"))()
-        end)
-    end,
-})
-
-_G.VIPSpeedCoil = false
-_G.VIPGravityCoil = false
-
-TabMisc:CreateButton({
-    Name = GetText("TPTool"),
-    Callback = function()
-        local tool = Instance.new("Tool")
-        tool.Name =
+RunService.Stepped:Connect(function()
+    if _G.Noclip then
+        local char, _, _ = GetCharacterElements()
+        if char then
+            for _, child in pairs(char:GetChildren()) do
+                if child:IsA("BasePart") and child.CanCollide == true then
+       
