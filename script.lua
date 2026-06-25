@@ -68,12 +68,8 @@ local function GetText(key)
     return Localization[key] and Localization[key][CurrentLang] or key
 end
 
--- Khởi tạo Rayfield GUI (Tải nhanh từ CDN ưu tiên)
-local Rayfield = nil
-pcall(function() Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))() end)
-if not Rayfield then
-    Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
-end
+-- Khởi tạo Rayfield GUI (Tải nhanh từ CDN ổn định nhất)
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "🌌 Universe Master Hub [ULTRA VIP] 2026",
@@ -127,7 +123,7 @@ TabMovement:CreateToggle({
 -- Xử lý vòng lặp thuộc tính nhân vật (Gộp chung để chạy siêu tốc)
 task.spawn(function()
     RunService.Heartbeat:Connect(function()
-        local _, hum, hrp = GetCharacterElements()
+        local _, hum, _ = GetCharacterElements()
         if hum then
             if _G.CustomSpeed then hum.WalkSpeed = _G.CustomSpeed end
             if _G.CustomJump then hum.JumpPower = _G.CustomJump end
@@ -497,4 +493,11 @@ RunService.Stepped:Connect(function()
         if char then
             for _, child in pairs(char:GetChildren()) do
                 if child:IsA("BasePart") and child.CanCollide == true then
-       
+                    child.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- Bật thông báo kích hoạt thành 
