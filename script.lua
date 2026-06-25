@@ -18,6 +18,7 @@ end)
 -- Khởi tạo Hệ thống Ngôn ngữ mặc định (1: Tiếng Việt, 2: English)
 _G.CurrentLang = _G.CurrentLang or 1
 
+-- Bảng từ điển dịch thuật cao cấp
 local Localization = {
     ["LoadingTitle"] = {"Đang tải Universe MASTER ULTRA VIP...", "Loading Universe MASTER ULTRA VIP..."},
     ["TabMove"] = {"Di Chuyển VIP", "VIP Movement"},
@@ -66,23 +67,45 @@ local function GetText(key)
 end
 
 ---------------------------------------------------------
--- TẢI THƯ VIỆN ORION UI (MƯỢT 100% TRÊN MOBILE)
+-- CƠ CHẾ KIỂM TRA VÀ TỰ ĐỘNG CHUYỂN LINK GUI RAYFIELD
 ---------------------------------------------------------
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Rayfield = nil
+local urls = {
+    "https://raw.githubusercontent.com/shlexware/Rayfield/main/source",
+    "https://sirius.menu/rayfield",
+    "https://raw.githubusercontent.com/sirius-menu/rayfield/main/source"
+}
 
-local Window = OrionLib:MakeWindow({
-    Name = "🌌 Universe Master Hub [ULTRA VIP] 2026", 
-    HidePremium = false, 
-    SaveConfig = false, 
-    IntroText = "Loading Ultra VIP..."
+for _, url in ipairs(urls) do
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(url))()
+    end)
+    if success and result then
+        Rayfield = result
+        break
+    end
+end
+
+if not Rayfield then
+    LocalPlayer:Kick("Không thể tải thư viện Rayfield UI!")
+    return
+end
+
+local Window = Rayfield:CreateWindow({
+    Name = "🌌 Universe Master Hub [ULTRA VIP] 2026",
+    LoadingTitle = GetText("LoadingTitle"),
+    LoadingSubtitle = "Supreme Multi-tool Subscription",
+    ConfigurationSaving = { Enabled = false },
+    KeySystem = false
 })
 
-local TabMovement = Window:MakeTab({Name = GetText("TabMove"), Icon = "rbxassetid://4483345998"})
-local TabObbyEscape = Window:MakeTab({Name = GetText("TabObby"), Icon = "rbxassetid://4483345998"})
-local TabCombatVisual = Window:MakeTab({Name = GetText("TabProtect"), Icon = "rbxassetid://4483345998"})
-local TabVisuals = Window:MakeTab({Name = GetText("TabVisual"), Icon = "rbxassetid://4483345998"})
-local TabMisc = Window:MakeTab({Name = GetText("TabMisc"), Icon = "rbxassetid://4483345998"})
-local TabLanguage = Window:MakeTab({Name = GetText("TabLang"), Icon = "rbxassetid://4483345998"})
+-- Khởi tạo các Tab chức năng
+local TabMovement = Window:CreateTab(GetText("TabMove"), "move")
+local TabObbyEscape = Window:CreateTab(GetText("TabObby"), "trophy")
+local TabCombatVisual = Window:CreateTab(GetText("TabProtect"), "shield")
+local TabVisuals = Window:CreateTab(GetText("TabVisual"), "eye")
+local TabMisc = Window:CreateTab(GetText("TabMisc"), "star")
+local TabLanguage = Window:CreateTab(GetText("TabLang"), "globe")
 
 local function GetCharacterElements()
     local char = LocalPlayer.Character
@@ -91,21 +114,30 @@ local function GetCharacterElements()
 end
 
 ---------------------------------------------------------
--- CÁC TÍNH NĂNG CHÍNH
+-- TAB 1: DI CHUYỂN VIP (TỐI ƯU MOBILE)
 ---------------------------------------------------------
-TabMovement:AddSlider({
-    Name = GetText("WalkSpeed"), Min = 16, Max = 500, Default = 16, Color = Color3.fromRGB(255,255,255), Increment = 1, ValueName = "Speed",
-    Callback = function(v) _G.CustomSpeed = v end
+TabMovement:CreateSlider({
+    Name = GetText("WalkSpeed"),
+    Range = {16, 500},
+    Increment = 1,
+    Suffix = "Studs",
+    CurrentValue = 16,
+    Callback = function(v) _G.CustomSpeed = v end,
 })
 
-TabMovement:AddSlider({
-    Name = GetText("JumpPower"), Min = 50, Max = 1000, Default = 50, Color = Color3.fromRGB(255,255,255), Increment = 1, ValueName = "Power",
-    Callback = function(v) _G.CustomJump = v end
+TabMovement:CreateSlider({
+    Name = GetText("JumpPower"),
+    Range = {50, 1000},
+    Increment = 1,
+    Suffix = "Height",
+    CurrentValue = 50,
+    Callback = function(v) _G.CustomJump = v end,
 })
 
-TabMovement:AddToggle({
-    Name = GetText("InfJump"), Default = false,
-    Callback = function(v) _G.InfJump = v end
+TabMovement:CreateToggle({
+    Name = GetText("InfJump"),
+    CurrentValue = false,
+    Callback = function(v) _G.InfJump = v end,
 })
 
 task.spawn(function()
@@ -125,7 +157,7 @@ game:GetService("UserInputService").JumpRequest:Connect(function()
     end
 end)
 
--- FLY MOBILE
+-- HỆ THỐNG BAY MOBILE ĐỘC QUYỀN
 local Flying = false
 local FlySpeed = 50
 local FlyUp = false
@@ -169,8 +201,9 @@ local function CreateMobileFlyButtons()
     DownBtn.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then FlyDown = false end end)
 end
 
-TabMovement:AddToggle({
-    Name = GetText("FlyHack"), Default = false,
+TabMovement:CreateToggle({
+    Name = GetText("FlyHack"),
+    CurrentValue = false,
     Callback = function(v)
         Flying = v
         local _, _, hrp = GetCharacterElements()
@@ -208,9 +241,9 @@ TabMovement:AddToggle({
 })
 
 ---------------------------------------------------------
--- TAB 2: OBBY
+-- TAB 2: BÁ CHỦ OBBY
 ---------------------------------------------------------
-TabObbyEscape:AddButton({
+TabObbyEscape:CreateButton({
     Name = GetText("AutoWin"),
     Callback = function()
         local _, _, hrp = GetCharacterElements()
@@ -222,10 +255,10 @@ TabObbyEscape:AddButton({
                 end
             end
         end
-    end
+    end,
 })
 
-TabObbyEscape:AddButton({
+TabObbyEscape:CreateButton({
     Name = GetText("SpeedRun"),
     Callback = function()
         local _, _, hrp = GetCharacterElements()
@@ -243,11 +276,12 @@ TabObbyEscape:AddButton({
                 end
             end
         end)
-    end
+    end,
 })
 
-TabObbyEscape:AddToggle({
-    Name = GetText("AutoFarm"), Default = false,
+TabObbyEscape:CreateToggle({
+    Name = GetText("AutoFarm"),
+    CurrentValue = false,
     Callback = function(Value)
         _G.AutoFarm = Value
         if not Value then return end
@@ -270,10 +304,10 @@ TabObbyEscape:AddToggle({
                 task.wait(0.5)
             end
         end)
-    end
+    end,
 })
 
-TabObbyEscape:AddButton({
+TabObbyEscape:CreateButton({
     Name = GetText("ClearTraps"),
     Callback = function()
         for _, v in pairs(workspace:GetDescendants()) do
@@ -286,12 +320,13 @@ TabObbyEscape:AddButton({
                 end
             end
         end
-    end
+    end,
 })
 
-TabObbyEscape:AddToggle({
-    Name = GetText("InstantInteract"), Default = false,
-    Callback = function(v) _G.Instant = v end
+TabObbyEscape:CreateToggle({
+    Name = GetText("InstantInteract"),
+    CurrentValue = false,
+    Callback = function(v) _G.Instant = v end,
 })
 
 task.spawn(function()
@@ -305,14 +340,35 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------------
--- TAB 3: DEFENSE
+-- TAB 3: PHÒNG THỦ TỐI THƯỢNG
 ---------------------------------------------------------
-TabCombatVisual:AddToggle({Name = GetText("GodMode"), Default = false, Callback = function(v) _G.GodMode = v end})
-TabCombatVisual:AddToggle({Name = GetText("InfLife"), Default = false, Callback = function(v) _G.InfLife = v end})
-TabCombatVisual:AddToggle({Name = GetText("AutoDodge"), Default = false, Callback = function(v) _G.AutoDodge = v end})
-TabCombatVisual:AddToggle({Name = GetText("Magnet"), Default = false, Callback = function(v) _G.Magnet = v end})
-TabCombatVisual:AddToggle({
-    Name = GetText("ESPMonster"), Default = false,
+TabCombatVisual:CreateToggle({
+    Name = GetText("GodMode"),
+    CurrentValue = false,
+    Callback = function(v) _G.GodMode = v end,
+})
+
+TabCombatVisual:CreateToggle({
+    Name = GetText("InfLife"),
+    CurrentValue = false,
+    Callback = function(v) _G.InfLife = v end,
+})
+
+TabCombatVisual:CreateToggle({
+    Name = GetText("AutoDodge"),
+    CurrentValue = false,
+    Callback = function(v) _G.AutoDodge = v end,
+})
+
+TabCombatVisual:CreateToggle({
+    Name = GetText("Magnet"),
+    CurrentValue = false,
+    Callback = function(v) _G.Magnet = v end,
+})
+
+TabCombatVisual:CreateToggle({
+    Name = GetText("ESPMonster"),
+    CurrentValue = false,
     Callback = function(Value)
         _G.ESPMonster = Value
         if not Value then
@@ -320,9 +376,14 @@ TabCombatVisual:AddToggle({
                 if v:IsA("Highlight") and v.Name == "MonsterESP" then v:Destroy() end
             end
         end
-    end
+    end,
 })
-TabCombatVisual:AddToggle({Name = GetText("KillAura"), Default = false, Callback = function(v) _G.KillAura = v end})
+
+TabCombatVisual:CreateToggle({
+    Name = GetText("KillAura"),
+    CurrentValue = false,
+    Callback = function(Value) _G.KillAura = Value end
+})
 
 task.spawn(function()
     while task.wait(0.1) do
@@ -371,27 +432,28 @@ task.spawn(function()
 end)
 
 local savedCFrame = nil
-TabCombatVisual:AddButton({
+TabCombatVisual:CreateButton({
     Name = GetText("SavePos"),
     Callback = function()
         local _, _, hrp = GetCharacterElements()
-        if hrp then savedCFrame = hrp.CFrame OrionLib:MakeNotification({Name = "Success", Content = "Saved Position!", Time = 2}) end
-    end
+        if hrp then savedCFrame = hrp.CFrame Rayfield:Notify({Title = "Success", Content = "Saved Position!", Duration = 2}) end
+    end,
 })
 
-TabCombatVisual:AddButton({
+TabCombatVisual:CreateButton({
     Name = GetText("TPPos"),
     Callback = function()
         local _, _, hrp = GetCharacterElements()
         if savedCFrame and hrp then hrp.CFrame = savedCFrame end
-    end
+    end,
 })
 
 ---------------------------------------------------------
--- TAB 4: NOCLIP & VISUAL
+-- TAB 4: HIỆU ỨNG & QUAN SÁT (SỬA LỖI NOCLIP)
 ---------------------------------------------------------
-TabVisuals:AddToggle({
-    Name = GetText("ESP"), Default = false,
+TabVisuals:CreateToggle({
+    Name = GetText("ESP"),
+    CurrentValue = false,
     Callback = function(Value)
         _G.ESP = Value
         for _, p in pairs(Players:GetPlayers()) do
@@ -400,27 +462,36 @@ TabVisuals:AddToggle({
                 if Value then if not h then Instance.new("Highlight", p.Character) end else if h and h.Name ~= "MonsterESP" then h:Destroy() end end
             end
         end
-    end
+    end,
 })
 
-TabVisuals:AddToggle({Name = GetText("Noclip"), Default = false, Callback = function(v) _G.Noclip = v end})
+-- Noclip cải tiến kết hợp đổi trạng thái để không bao giờ lỗi cancollide
+TabVisuals:CreateToggle({
+    Name = GetText("Noclip"),
+    CurrentValue = false,
+    Callback = function(v) _G.Noclip = v end
+})
 
 RunService.Stepped:Connect(function()
     if _G.Noclip then
         local char, hum, _ = GetCharacterElements()
         if char then
             for _, child in pairs(char:GetDescendants()) do
-                if child:IsA("BasePart") then child.CanCollide = false end
+                if child:IsA("BasePart") then
+                    child.CanCollide = false
+                end
             end
-            if hum then hum:ChangeState(Enum.HumanoidStateType.NoPhysics) end
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.NoPhysics)
+            end
         end
     end
 end)
 
 ---------------------------------------------------------
--- TAB 5: TIỆN ÍCH TỐI CAO (SAFE TP & SPEED COIL)
+-- TAB 5: TIỆN ÍCH TỐI CAO (CLIENT-SIDE TOOLS - ẨN DANH)
 ---------------------------------------------------------
-TabMisc:AddButton({
+TabMisc:CreateButton({
     Name = GetText("TPTool"),
     Callback = function()
         local tool = Instance.new("Tool")
@@ -431,34 +502,12 @@ TabMisc:AddButton({
             local mouse = LocalPlayer:GetMouse()
             local targetPos = mouse.Hit.p
             
+            -- Thực hiện Raycast kiểm tra Block
             local raycastParams = RaycastParams.new()
             raycastParams.FilterFolder = {LocalPlayer.Character}
             raycastParams.FilterType = Enum.RaycastFilterType.Exclude
             
+            -- Bắn 1 tia xuống dưới vị trí click chuột 15 studs để xem có sàn nhà không
             local raycastResult = workspace:Raycast(targetPos + Vector3.new(0, 5, 0), Vector3.new(0, -20, 0), raycastParams)
             
-            local _, _, hrp = GetCharacterElements()
-            if hrp then
-                if raycastResult and raycastResult.Instance then
-                    hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-                    OrionLib:MakeNotification({Name = "Safe TP", Content = GetText("SafeTPSuccess"), Time = 2})
-                else
-                    OrionLib:MakeNotification({Name = "Warning", Content = GetText("SafeTPWarn"), Time = 3})
-                end
-            end
-        end)
-        tool.Parent = LocalPlayer.Backpack
-    end
-})
-
-TabMisc:AddButton({
-    Name = GetText("SpeedCoil"),
-    Callback = function()
-        local tool = Instance.new("Tool")
-        tool.Name = "Speed Coil (VIP)"
-        tool.RequiresHandle = false
         
-        tool.Equipped:Connect(function() _G.CustomSpeed = 80 end)
-        tool.Unequipped:Connect(function() _G.CustomSpeed = 16 end)
-        tool.Parent = LocalPlayer.Backpack
-        end
