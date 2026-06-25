@@ -16,7 +16,7 @@ pcall(function()
 end)
 
 -- Khởi tạo Hệ thống Ngôn ngữ mặc định (1: Tiếng Việt, 2: English)
-local CurrentLang = 1
+_G.CurrentLang = _G.CurrentLang or 1
 
 -- Bảng từ điển dịch thuật cao cấp
 local Localization = {
@@ -53,23 +53,43 @@ local Localization = {
     ["Fullbright"] = {"Bật Kính nhìn đêm (Fullbright)", "Fullbright (No Shadows)"},
     ["NoFog"] = {"Xóa bỏ sương mù (No Fog)", "Remove Fog"},
     
-    ["BTools"] = {"Nhận Công cụ phá Map (F3X BTools VIP)", "Get F3X BTools VIP"},
-    ["TPTool"] = {"Nhận Dụng cụ Dịch Chuyển (TP Tool)", "Get Teleport Tool"},
-    ["SpeedCoil"] = {"Nhận Vòng Tốc Độ (Speed Coil Tool)", "Get Speed Coil Tool"},
-    ["GravCoil"] = {"Nhận Vòng Trọng Lực (Gravity Coil Tool)", "Get Gravity Coil Tool"},
-    ["ServerHop"] = {"Chuyển Server siêu tốc", "Server Hop"},
-    ["ResetChar"] = {"Tự tử (Reset)", "Reset Character"},
+    ["TPTool"] = {"Nhận Dụng cụ Dịch Chuyển An Toàn", "Get Safe Teleport Tool"},
+    ["SpeedCoil"] = {"Nhận Vòng Tốc Độ (Ẩn danh)", "Get Speed Coil (Client-side)"},
     
     ["NotifyTitle"] = {"ĐÃ KÍCH HOẠT ULTRA VIP!", "ULTRA VIP ACTIVATED!"},
-    ["NotifyContent"] = {"Bạn đang sở hữu đặc quyền tối cao của Hub. Hãy tận hưởng!", "You now hold the supreme privileges of the Hub. Enjoy!"}
+    ["NotifyContent"] = {"Bạn đang sở hữu đặc quyền tối cao của Hub. Hãy tận hưởng!", "You now hold the supreme privileges of the Hub. Enjoy!"},
+    ["SafeTPWarn"] = {"Phát hiện khoảng trống nguy hiểm! Đã hủy dịch chuyển.", "Void detected! Teleportation cancelled for safety."},
+    ["SafeTPSuccess"] = {"Dịch chuyển an toàn thành công!", "Teleported safely!"}
 }
 
 local function GetText(key)
-    return Localization[key] and Localization[key][CurrentLang] or key
+    return Localization[key] and Localization[key][_G.CurrentLang] or key
 end
 
--- Khởi tạo Rayfield GUI (Tải nhanh từ CDN ổn định nhất)
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+---------------------------------------------------------
+-- CƠ CHẾ KIỂM TRA VÀ TỰ ĐỘNG CHUYỂN LINK GUI RAYFIELD
+---------------------------------------------------------
+local Rayfield = nil
+local urls = {
+    "https://raw.githubusercontent.com/shlexware/Rayfield/main/source",
+    "https://sirius.menu/rayfield",
+    "https://raw.githubusercontent.com/sirius-menu/rayfield/main/source"
+}
+
+for _, url in ipairs(urls) do
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(url))()
+    end)
+    if success and result then
+        Rayfield = result
+        break
+    end
+end
+
+if not Rayfield then
+    LocalPlayer:Kick("Không thể tải thư viện Rayfield UI!")
+    return
+end
 
 local Window = Rayfield:CreateWindow({
     Name = "🌌 Universe Master Hub [ULTRA VIP] 2026",
@@ -120,7 +140,6 @@ TabMovement:CreateToggle({
     Callback = function(v) _G.InfJump = v end,
 })
 
--- Xử lý vòng lặp thuộc tính nhân vật (Gộp chung để chạy siêu tốc)
 task.spawn(function()
     RunService.Heartbeat:Connect(function()
         local _, hum, _ = GetCharacterElements()
@@ -131,7 +150,6 @@ task.spawn(function()
     end)
 end)
 
--- Nhảy vô hạn tối ưu phản hồi nhanh
 game:GetService("UserInputService").JumpRequest:Connect(function()
     if _G.InfJump then
         local _, hum, _ = GetCharacterElements()
@@ -148,14 +166,12 @@ local ScreenGui = nil
 
 local function CreateMobileFlyButtons()
     if ScreenGui then ScreenGui:Destroy() end
-    
     ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MobileFlyGui"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = game:GetService("CoreGui") or PlayerGui
     
     local UpBtn = Instance.new("TextButton")
-    UpBtn.Name = "FlyUpButton"
     UpBtn.Size = UDim2.new(0, 65, 0, 65)
     UpBtn.Position = UDim2.new(0.85, 0, 0.55, -70)
     UpBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
@@ -168,7 +184,6 @@ local function CreateMobileFlyButtons()
     UpBtn.Parent = ScreenGui
     
     local DownBtn = Instance.new("TextButton")
-    DownBtn.Name = "FlyDownButton"
     DownBtn.Size = UDim2.new(0, 65, 0, 65)
     DownBtn.Position = UDim2.new(0.85, 0, 0.55, 10)
     DownBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
@@ -193,16 +208,11 @@ TabMovement:CreateToggle({
         Flying = v
         local _, _, hrp = GetCharacterElements()
         if not hrp then return end
-        
         if Flying then
             CreateMobileFlyButtons()
-            if hrp:FindFirstChild("VIPFly") then hrp.VIPFly:Destroy() end
-            if hrp:FindFirstChild("VIPGyro") then hrp.VIPGyro:Destroy() end
-            
             local bv = Instance.new("BodyVelocity", hrp)
             bv.Name = "VIPFly"
             bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-            
             local bg = Instance.new("BodyGyro", hrp)
             bg.Name = "VIPGyro"
             bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
@@ -212,25 +222,17 @@ TabMovement:CreateToggle({
                 while Flying and task.wait() do
                     local _, hum, cHrp = GetCharacterElements()
                     if not cHrp or not cHrp:FindFirstChild("VIPFly") then break end
-                    
                     cHrp.VIPGyro.cframe = camera.CFrame
                     local moveDirection = hum and hum.MoveDirection or Vector3.new(0,0,0)
                     local velocityVector = moveDirection * FlySpeed
-                    
                     local verticalSpeed = 0
                     if FlyUp then verticalSpeed = FlySpeed end
                     if FlyDown then verticalSpeed = -FlySpeed end
-                    
                     cHrp.VIPFly.velocity = Vector3.new(velocityVector.X, verticalSpeed == 0 and velocityVector.Y or verticalSpeed, velocityVector.Z)
-                    if moveDirection.Magnitude == 0 and verticalSpeed == 0 then
-                        cHrp.VIPFly.velocity = Vector3.new(0, 0, 0)
-                    end
                 end
             end)
         else
-            Flying = false
-            FlyUp = false
-            FlyDown = false
+            Flying = false; FlyUp = false; FlyDown = false
             if ScreenGui then ScreenGui:Destroy() ScreenGui = nil end
             if hrp:FindFirstChild("VIPFly") then hrp.VIPFly:Destroy() end
             if hrp:FindFirstChild("VIPGyro") then hrp.VIPGyro:Destroy() end
@@ -239,19 +241,13 @@ TabMovement:CreateToggle({
 })
 
 ---------------------------------------------------------
--- TAB 2: BÁ CHỦ OBBY (TỐI ƯU HÓA TÌM KIẾM NHANH)
+-- TAB 2: BÁ CHỦ OBBY
 ---------------------------------------------------------
 TabObbyEscape:CreateButton({
     Name = GetText("AutoWin"),
     Callback = function()
         local _, _, hrp = GetCharacterElements()
         if hrp then
-            for _, v in pairs(workspace:GetChildren()) do
-                if v:IsA("BasePart") and (string.find(v.Name, "Win") or string.find(v.Name, "End") or string.find(v.Name, "Finish")) then
-                    hrp.CFrame = v.CFrame
-                    return
-                end
-            end
             for _, v in pairs(workspace:GetDescendants()) do
                 if v:IsA("BasePart") and (string.find(v.Name, "Win") or string.find(v.Name, "End") or string.find(v.Name, "Finish")) then
                     hrp.CFrame = v.CFrame
@@ -267,7 +263,6 @@ TabObbyEscape:CreateButton({
     Callback = function()
         local _, _, hrp = GetCharacterElements()
         if not hrp then return end
-        
         task.spawn(function()
             local allParts = workspace:GetDescendants()
             for i = 1, 500 do
@@ -405,8 +400,6 @@ task.spawn(function()
                                 local hl = Instance.new("Highlight")
                                 hl.Name = "MonsterESP"
                                 hl.FillColor = Color3.fromRGB(255, 0, 0)
-                                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                                hl.FillTransparency = 0.5
                                 hl.Parent = model
                             end
                         end
@@ -417,20 +410,16 @@ task.spawn(function()
             if _G.KillAura then
                 local tool = char:FindFirstChildOfClass("Tool")
                 if tool then
-                    local lowerTool = string.lower(tool.Name)
-                    if string.find(lowerTool, "sword") or string.find(lowerTool, "kiếm") or string.find(lowerTool, "weapon") or tool:FindFirstChildOfClass("TouchTransmitter") then
+                    if tool:FindFirstChildOfClass("TouchTransmitter") or string.find(string.lower(tool.Name), "sword") then
                         for _, enemy in pairs(workspace:GetChildren()) do
                             if enemy:IsA("Model") and enemy ~= char and not Players:GetPlayerFromCharacter(enemy) then
-                                local enemyHrp = enemy:FindFirstChild("HumanoidRootPart") or enemy:FindFirstChild("Torso")
-                                local enemyHum = enemy:FindFirstChildOfClass("Humanoid")
-                                if enemyHrp and enemyHum and enemyHum.Health > 0 then
-                                    if (hrp.Position - enemyHrp.Position).Magnitude <= 18 then
-                                        tool:Activate()
-                                        local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("BasePart")
-                                        if handle then
-                                            firetouchinterest(enemyHrp, handle, 0)
-                                            firetouchinterest(enemyHrp, handle, 1)
-                                        end
+                                local enemyHrp = enemy:FindFirstChild("HumanoidRootPart")
+                                if enemyHrp and (hrp.Position - enemyHrp.Position).Magnitude <= 18 then
+                                    tool:Activate()
+                                    local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("BasePart")
+                                    if handle then
+                                        firetouchinterest(enemyHrp, handle, 0)
+                                        firetouchinterest(enemyHrp, handle, 1)
                                     end
                                 end
                             end
@@ -460,7 +449,7 @@ TabCombatVisual:CreateButton({
 })
 
 ---------------------------------------------------------
--- TAB 4: HIỆU ỨNG & QUAN SÁT
+-- TAB 4: HIỆU ỨNG & QUAN SÁT (SỬA LỖI NOCLIP)
 ---------------------------------------------------------
 TabVisuals:CreateToggle({
     Name = GetText("ESP"),
@@ -470,17 +459,13 @@ TabVisuals:CreateToggle({
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character then
                 local h = p.Character:FindFirstChildOfClass("Highlight")
-                if Value then 
-                    if not h then Instance.new("Highlight", p.Character) end 
-                else 
-                    if h and h.Name ~= "MonsterESP" then h:Destroy() end 
-                end
+                if Value then if not h then Instance.new("Highlight", p.Character) end else if h and h.Name ~= "MonsterESP" then h:Destroy() end end
             end
         end
     end,
 })
 
--- SỬA LẠI NOCLIP: Chạy mượt tuyệt đối qua Stepped ngăn kẹt tường/văng game
+-- Noclip cải tiến kết hợp đổi trạng thái để không bao giờ lỗi cancollide
 TabVisuals:CreateToggle({
     Name = GetText("Noclip"),
     CurrentValue = false,
@@ -489,15 +474,40 @@ TabVisuals:CreateToggle({
 
 RunService.Stepped:Connect(function()
     if _G.Noclip then
-        local char, _, _ = GetCharacterElements()
+        local char, hum, _ = GetCharacterElements()
         if char then
-            for _, child in pairs(char:GetChildren()) do
-                if child:IsA("BasePart") and child.CanCollide == true then
+            for _, child in pairs(char:GetDescendants()) do
+                if child:IsA("BasePart") then
                     child.CanCollide = false
                 end
+            end
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.NoPhysics)
             end
         end
     end
 end)
 
--- Bật thông báo kích hoạt thành 
+---------------------------------------------------------
+-- TAB 5: TIỆN ÍCH TỐI CAO (CLIENT-SIDE TOOLS - ẨN DANH)
+---------------------------------------------------------
+TabMisc:CreateButton({
+    Name = GetText("TPTool"),
+    Callback = function()
+        local tool = Instance.new("Tool")
+        tool.Name = "Safe Teleport"
+        tool.RequiresHandle = false
+        
+        tool.Activated:Connect(function()
+            local mouse = LocalPlayer:GetMouse()
+            local targetPos = mouse.Hit.p
+            
+            -- Thực hiện Raycast kiểm tra Block
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterFolder = {LocalPlayer.Character}
+            raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+            
+            -- Bắn 1 tia xuống dưới vị trí click chuột 15 studs để xem có sàn nhà không
+            local raycastResult = workspace:Raycast(targetPos + Vector3.new(0, 5, 0), Vector3.new(0, -20, 0), raycastParams)
+            
+        
